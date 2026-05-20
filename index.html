@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>擲骰任務棋盤 認知教案生成器</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --bg: #faf6ef;
+  --bg-soft: #f0e9db;
+  --ink: #2d2a26;
+  --ink-soft: #6b6660;
+  --line: #d9d2c2;
+  --primary: #ef6c4d;
+  --primary-dark: #c44b30;
+  --secondary: #0d7377;
+
+  --cat-number: #3a86ff;
+  --cat-tongue: #8338ec;
+  --cat-memory: #fb8500;
+  --cat-body:   #06a77d;
+  --cat-imagine:#f72585;
+  --cat-special:#ffbe0b;
+  --cat-start:  #06a77d;
+  --cat-end:    #d62828;
+
+  --shadow-sm: 0 1px 2px rgba(45,42,38,.08);
+  --shadow-md: 0 4px 14px rgba(45,42,38,.10);
+  --shadow-lg: 0 10px 30px rgba(45,42,38,.14);
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 96px;
+}
+
+/* ====== Header ====== */
+.app-header {
+  padding: 28px 20px 18px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at top left, rgba(239,108,77,.10), transparent 55%),
+    radial-gradient(ellipse at top right, rgba(13,115,119,.10), transparent 55%),
+    var(--bg);
+  border-bottom: 1px dashed var(--line);
+}
+.app-header h1 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--ink);
+}
+.app-header h1 .accent { color: var(--primary); }
+.app-header .subtitle {
+  color: var(--ink-soft);
+  font-size: 14px;
+  margin: 0;
+}
+.app-header .author {
+  margin-top: 10px;
+  display: inline-block;
+  padding: 4px 12px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--secondary);
+  font-weight: 600;
+}
+
+/* ====== Container ====== */
+.container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+
+/* ====== Settings ====== */
+.panel {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.panel-title {
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-title::before {
+  content: "";
+  width: 4px; height: 16px;
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px 18px;
+}
+.form-row { display: flex; flex-direction: column; gap: 8px; }
+.form-row label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: .3px;
+}
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  padding: 7px 12px;
+  background: var(--bg-soft);
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  font-size: 13.5px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all .18s ease;
+  user-select: none;
+  font-weight: 500;
+}
+.chip:hover { background: #ebe2cd; }
+.chip.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary-dark);
+  box-shadow: 0 2px 6px rgba(239,108,77,.35);
+}
+.chip.cat.active[data-val="number"] { background: var(--cat-number); border-color: var(--cat-number); box-shadow: 0 2px 6px rgba(58,134,255,.35); }
+.chip.cat.active[data-val="tongue"] { background: var(--cat-tongue); border-color: var(--cat-tongue); box-shadow: 0 2px 6px rgba(131,56,236,.35); }
+.chip.cat.active[data-val="memory"] { background: var(--cat-memory); border-color: var(--cat-memory); box-shadow: 0 2px 6px rgba(251,133,0,.35); }
+.chip.cat.active[data-val="body"]   { background: var(--cat-body);   border-color: var(--cat-body);   box-shadow: 0 2px 6px rgba(6,167,125,.35); }
+.chip.cat.active[data-val="imagine"]{ background: var(--cat-imagine);border-color: var(--cat-imagine);box-shadow: 0 2px 6px rgba(247,37,133,.35); }
+
+input[type="number"], select {
+  font: inherit;
+  padding: 9px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: white;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s ease;
+}
+input[type="number"]:focus, select:focus {
+  border-color: var(--primary);
+}
+textarea {
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: white;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s ease;
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.55;
+  font-family: inherit;
+}
+textarea:focus { border-color: #5e60ce; }
+
+.chip.cat.active[data-val="custom"] { background: #5e60ce; border-color: #5e60ce; box-shadow: 0 2px 6px rgba(94,96,206,.35); }
+.seed-row {
+  display: flex;
+  gap: 6px;
+}
+.seed-row input { flex: 1; }
+.btn-mini {
+  padding: 0 12px;
+  background: var(--secondary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background .15s ease;
+}
+.btn-mini:hover { background: #0a5e62; }
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .2s ease;
+  flex-shrink: 0;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 20px; height: 20px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  transition: transform .2s ease;
+}
+.switch.on { background: var(--primary); }
+.switch.on::after { transform: translateX(20px); }
+
+/* ====== Preview ====== */
+.preview-wrap {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 14px;
+  overflow: auto;
+  max-height: 80vh;
+}
+.preview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  padding: 12px 14px;
+  background: var(--bg-soft);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.preview-meta b { color: var(--ink); font-weight: 700; }
+.canvas-frame {
+  text-align: center;
+  background: #ece4d2;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+}
+.canvas-frame canvas {
+  max-width: 100%;
+  height: auto;
+  background: white;
+  box-shadow: var(--shadow-md);
+  border-radius: 4px;
+}
+
+/* ====== Action Bar ====== */
+.action-bar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  background: white;
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -4px 18px rgba(45,42,38,.08);
+  padding: 12px 16px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  z-index: 10;
+}
+.btn {
+  padding: 11px 22px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-weight: 700;
+  font-size: 14.5px;
+  cursor: pointer;
+  transition: all .18s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 3px 10px rgba(239,108,77,.35);
+}
+.btn-primary:hover:not(:disabled) { background: var(--primary-dark); transform: translateY(-1px); }
+.btn-secondary {
+  background: white;
+  color: var(--secondary);
+  border: 1.5px solid var(--secondary);
+}
+.btn-secondary:hover { background: var(--secondary); color: white; }
+.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* ====== Loading ====== */
+.loading {
+  position: fixed;
+  inset: 0;
+  background: rgba(250,246,239,.92);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+.loading.show { display: flex; }
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--bg-soft);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ====== Mobile ====== */
+@media (max-width: 640px) {
+  .app-header h1 { font-size: 22px; }
+  .panel { padding: 16px; }
+  .container { padding: 14px; }
+  .form-grid { gap: 14px; }
+  .btn { padding: 11px 16px; font-size: 13.5px; }
+}
+
+/* ====== Print ====== */
+@media print {
+  body { background: white; padding: 0; }
+  .app-header, .panel, .action-bar, .preview-meta { display: none; }
+  .canvas-frame { background: white; padding: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>擲骰任務<span class="accent">棋盤</span> 認知教案生成器</h1>
+  <p class="subtitle">為長者與兒童設計的桌遊式認知訓練棋盤</p>
+  <span class="author">設計者：愛迪樂 鍾孟修 職能治療師</span>
+</header>
+
+<div class="container">
+
+  <!-- ====== Settings ====== -->
+  <div class="panel">
+    <h2 class="panel-title">設定</h2>
+    <div class="form-grid">
+
+      <div class="form-row">
+        <label>主題</label>
+        <div class="chip-group" id="theme-group">
+          <div class="chip active" data-val="treasure">🏝️ 尋寶</div>
+          <div class="chip" data-val="travel">✈️ 旅行</div>
+          <div class="chip" data-val="season">🌸 四季</div>
+          <div class="chip" data-val="zoo">🦁 動物園</div>
+          <div class="chip" data-val="space">🚀 太空</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>適用族群</label>
+        <div class="chip-group" id="population-group">
+          <div class="chip" data-val="kid">兒童</div>
+          <div class="chip" data-val="elder">長者</div>
+          <div class="chip active" data-val="mix">通用</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>格數</label>
+        <div class="chip-group" id="cellcount-group">
+          <div class="chip" data-val="20">20</div>
+          <div class="chip" data-val="25">25</div>
+          <div class="chip active" data-val="30">30</div>
+          <div class="chip" data-val="35">35</div>
+          <div class="chip" data-val="40">40</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>難度</label>
+        <div class="chip-group" id="difficulty-group">
+          <div class="chip active" data-val="easy">簡單</div>
+          <div class="chip" data-val="medium">中等</div>
+          <div class="chip" data-val="hard">困難</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>字體大小</label>
+        <div class="chip-group" id="fontsize-group">
+          <div class="chip" data-val="std">標準</div>
+          <div class="chip active" data-val="large">大</div>
+          <div class="chip" data-val="xlarge">特大</div>
+          <div class="chip" data-val="huge">超大</div>
+        </div>
+      </div>
+
+      <div class="form-row" style="grid-column: 1 / -1;">
+        <label>任務類別（至少選擇一項）</label>
+        <div class="chip-group" id="categories-group">
+          <div class="chip cat active" data-val="number">🔢 數字計算</div>
+          <div class="chip cat active" data-val="tongue">👄 念繞口令</div>
+          <div class="chip cat active" data-val="memory">💭 回憶問題</div>
+          <div class="chip cat active" data-val="body">🤸 肢體動作</div>
+          <div class="chip cat active" data-val="imagine">✨ 想像表達</div>
+          <div class="chip cat" data-val="custom">✏️ 自訂題目</div>
+        </div>
+      </div>
+
+      <div class="form-row" style="grid-column: 1 / -1;">
+        <label>自訂題目內容（每行一題；勾選「自訂題目」類別後生效）</label>
+        <textarea id="customTasks" rows="4" placeholder="例如：&#10;說出班上一位同學的優點&#10;模仿喜歡的卡通人物說一句話&#10;唱一首兒歌的第一句"></textarea>
+        <small id="customHint" style="color: var(--ink-soft); font-size: 12px;">尚未啟用自訂題目類別</small>
+      </div>
+
+      <div class="form-row">
+        <label>列印份數</label>
+        <input type="number" id="copies" value="1" min="1" max="10">
+      </div>
+
+      <div class="form-row">
+        <label>隨機種子</label>
+        <div class="seed-row">
+          <input type="number" id="seed" value="1024" min="1" max="999999">
+          <button class="btn-mini" id="randomSeed">🎲 隨機</button>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>治療師指引頁</label>
+        <div class="switch-row">
+          <span style="font-size:13.5px;color:var(--ink-soft);">列印時附上任務統計與遊戲說明</span>
+          <div class="switch" id="guideSwitch"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ====== Preview ====== -->
+  <div class="preview-wrap">
+    <div class="preview-meta" id="previewMeta">
+      <span><b>主題：</b><span id="m-theme">尋寶</span></span>
+      <span><b>族群：</b><span id="m-pop">通用</span></span>
+      <span><b>格數：</b><span id="m-cells">30</span></span>
+      <span><b>難度：</b><span id="m-diff">簡單</span></span>
+      <span><b>份數：</b><span id="m-copies">1</span></span>
+      <span><b>種子：</b><span id="m-seed">1024</span></span>
+    </div>
+    <div class="canvas-frame">
+      <canvas id="boardCanvas" width="1754" height="1240"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- ====== Action Bar ====== -->
+<div class="action-bar">
+  <button class="btn btn-secondary" id="btnRegen">🔄 重新生成</button>
+  <button class="btn btn-primary" id="btnPDF">📥 匯出 PDF</button>
+</div>
+
+<!-- ====== Loading Overlay ====== -->
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <div id="loadingText" style="color:var(--ink-soft);font-weight:600;">處理中…</div>
+</div>
+
+<script>
+/* ====================================================================
+ *   TASK LIBRARY
+ *   結構: TASKS[category][difficulty] = [task objects]
+ *   每個 task: { kid: '...', elder: '...', mix: '...' } (可用同字串)
+ * ==================================================================== */
+const TASKS = {
+  number: {
+    easy: [
+      { kid: "說出1到10",        elder: "從1數到10",            mix: "從1數到10" },
+      { kid: "3 + 2 = ?",        elder: "5 + 3 = ?",           mix: "5 + 3 = ?" },
+      { kid: "5 - 1 = ?",        elder: "10 - 4 = ?",          mix: "8 - 3 = ?" },
+      { kid: "4 + 4 = ?",        elder: "20 - 5 = ?",          mix: "7 + 2 = ?" },
+      { kid: "拍手 5 下",         elder: "說出今天是幾月幾號",    mix: "說出本週還有幾天" },
+      { kid: "說出 3 個雙數",      elder: "說出 3 個單數",        mix: "從 10 倒數到 1" },
+      { kid: "6 - 2 = ?",        elder: "30 - 10 = ?",         mix: "9 + 1 = ?" },
+      { kid: "說出比 5 大的數字",   elder: "說出比 50 小的整十數",   mix: "說出 3 個連續數字" }
+    ],
+    medium: [
+      { kid: "7 + 5 = ?",        elder: "25 + 15 = ?",         mix: "12 + 8 = ?" },
+      { kid: "10 - 4 = ?",       elder: "40 - 17 = ?",         mix: "15 - 7 = ?" },
+      { kid: "5 + 5 + 2 = ?",    elder: "20 + 30 + 5 = ?",     mix: "10 + 10 + 5 = ?" },
+      { kid: "說出 5 個雙數",      elder: "說出 5 個整十數",       mix: "從 20 倒數到 10" },
+      { kid: "3 × 2 = ?",        elder: "100 - 10 = ?",        mix: "8 × 2 = ?" },
+      { kid: "說出星期幾共有幾天",   elder: "說出一年有幾個月",      mix: "說出一週的星期名稱" },
+      { kid: "今天的日期再加 3 天是?", elder: "100 元減 35 元剩多少?", mix: "今天日期加 7 天是?" },
+      { kid: "9 + 6 = ?",        elder: "55 + 25 = ?",         mix: "13 + 9 = ?" }
+    ],
+    hard: [
+      { kid: "8 × 3 = ?",        elder: "100 - 7 = ?",         mix: "15 × 2 = ?" },
+      { kid: "20 - 9 = ?",       elder: "100 - 7 再減 7 = ?",   mix: "從 100 減 3 倒數 5 次" },
+      { kid: "說出 7 的倍數三個",   elder: "說出今年是民國幾年",     mix: "說出本月有幾天" },
+      { kid: "12 + 18 = ?",      elder: "75 + 28 = ?",         mix: "27 + 35 = ?" },
+      { kid: "倒數 20 到 10",      elder: "三天前是星期幾?",       mix: "說出 3 個 5 的倍數" },
+      { kid: "6 × 4 = ?",        elder: "120 ÷ 10 = ?",        mix: "9 × 4 = ?" },
+      { kid: "說出 100 以內 3 個 10 的倍數", elder: "說出 5 個 5 的倍數", mix: "從 50 倒數到 30" }
+    ]
+  },
+  tongue: {
+    easy: [
+      { mix: "說：吃葡萄不吐葡萄皮" },
+      { mix: "說：四是四，十是十" },
+      { mix: "說：黑兔白兔" },
+      { mix: "說：紅鳳凰、黃鳳凰" },
+      { mix: "說：八百標兵奔北坡" },
+      { mix: "說：板凳寬、扁擔長" },
+      { mix: "說：媽媽騎馬" },
+      { mix: "說：六十六歲老六" }
+    ],
+    medium: [
+      { mix: "連說兩次：吃葡萄不吐葡萄皮" },
+      { mix: "連說兩次：四是四、十是十、十四是十四" },
+      { mix: "連說兩次：紅鳳凰、粉紅鳳凰" },
+      { mix: "說：扁擔長板凳寬，扁擔沒有板凳寬" },
+      { mix: "說：白石塔、白石搭、白塔白又大" },
+      { mix: "連說兩次：媽媽騎馬，馬慢媽媽罵馬" },
+      { mix: "說：山前有個崔粗腿，山後有個崔腿粗" }
+    ],
+    hard: [
+      { mix: "連說三次：吃葡萄不吐葡萄皮，不吃葡萄倒吐葡萄皮" },
+      { mix: "說：石獅寺前有四十四隻石獅子" },
+      { mix: "連說三次：紅鳳凰、黃鳳凰、粉紅鳳凰" },
+      { mix: "連說三次：扁擔長板凳寬，扁擔沒有板凳寬" },
+      { mix: "說：八百標兵奔北坡，北坡炮兵並排跑" },
+      { mix: "連說三次：四是四、十是十、十四是十四、四十是四十" }
+    ]
+  },
+  memory: {
+    easy: [
+      { kid: "說出你最喜歡的卡通",    elder: "說說您的老家在哪裡",    mix: "說出你的姓名與年齡" },
+      { kid: "說出 3 種水果",       elder: "說出您最喜歡的菜",      mix: "說出 3 種水果" },
+      { kid: "說出 3 種動物",       elder: "說出 3 種您種過的菜",   mix: "說出 3 種顏色" },
+      { kid: "說出最好的朋友是誰",    elder: "說說您的配偶或孩子",    mix: "說出一位家人的名字" },
+      { kid: "說出你住在哪裡",       elder: "說說您住過最久的地方",   mix: "說說您今天怎麼來這裡的" },
+      { kid: "說出今天早餐吃什麼",    elder: "說說您今天吃了什麼",    mix: "說說您昨天最開心的事" },
+      { kid: "說出你最喜歡的顏色",    elder: "說出您最喜歡的歌",      mix: "說出您最喜歡的休閒活動" }
+    ],
+    medium: [
+      { kid: "說出今天早上吃了什麼",     elder: "說一個您小時候的故事",      mix: "說出您最難忘的一次旅行" },
+      { kid: "說出最喜歡的玩具，為什麼?", elder: "您年輕時做過什麼工作?",     mix: "說出您最喜歡的節日" },
+      { kid: "說出 5 種動物",          elder: "說出 5 種您小時候吃過的零食",  mix: "說出 5 樣家裡有的東西" },
+      { kid: "說出最喜歡的食物，為什麼?", elder: "您結婚時的情景是怎樣的?",   mix: "說出最近一次出去玩的地方" },
+      { kid: "說出一件最開心的事",       elder: "說一件年輕時的開心事",      mix: "說出最近讓您笑的事" },
+      { kid: "形容你的爸爸或媽媽",       elder: "形容您年輕時的樣子",       mix: "形容今天的天氣" }
+    ],
+    hard: [
+      { kid: "說出 5 種動物的叫聲",      elder: "說出 3 首您小時候唱過的歌",    mix: "說出 3 件這週做過的事" },
+      { kid: "形容你愛的人，但不能說出名字", elder: "詳細描述您童年的家",        mix: "詳細介紹一位重要的家人" },
+      { kid: "說出 3 種運動，並比動作",    elder: "說 3 件您最自豪的事",        mix: "說 3 件最近想完成的事" },
+      { kid: "編個故事說說你的玩具",       elder: "說說您年輕時的鄰居",        mix: "說說您最有印象的一位老師" },
+      { kid: "說 3 種職業並說做什麼",      elder: "說 3 件您年輕時的工作回憶",   mix: "說 3 種您最會做的菜" }
+    ]
+  },
+  body: {
+    easy: [
+      { kid: "原地跳 3 下",         elder: "雙手往上伸展 3 次",       mix: "站起來再坐下 1 次" },
+      { kid: "拍手 5 次",          elder: "深呼吸 3 次",            mix: "雙手交叉拍肩膀 5 次" },
+      { kid: "學小貓走路 3 步",      elder: "手指張開合起 5 次",       mix: "頭部左右轉動 3 次" },
+      { kid: "用單腳站 3 秒",       elder: "腳踝旋轉 5 次",          mix: "肩膀繞圈前後各 3 次" },
+      { kid: "學小鳥揮翅膀 5 次",     elder: "雙手握拳放開 10 次",      mix: "原地踏步 10 下" },
+      { kid: "向後退 3 步",         elder: "雙腳輪流抬起 5 次",       mix: "雙手張開合起 5 次" }
+    ],
+    medium: [
+      { kid: "單腳站 5 秒",         elder: "踏步走 10 步",           mix: "原地走路 15 秒" },
+      { kid: "學大象走路 5 步",      elder: "雙手交叉拍肩膀 10 次",     mix: "雙手繞圈大轉 5 次" },
+      { kid: "向後退 5 步",         elder: "頭部上下點 10 次",        mix: "深蹲 3 下" },
+      { kid: "蹲下站起 3 次",        elder: "雙腳前後輪流抬起 8 次",    mix: "原地高抬腿 5 下" },
+      { kid: "學青蛙跳 3 下",        elder: "雙手向兩側伸展 5 次",     mix: "扭腰左右各 5 次" },
+      { kid: "兩手分別拍肚子 10 下",    elder: "坐姿抬腿左右各 5 次",     mix: "向上伸懶腰 3 次" }
+    ],
+    hard: [
+      { kid: "單腳跳 5 下",         elder: "閉眼站立 5 秒",          mix: "深蹲 5 下" },
+      { kid: "模仿喜歡的運動動作",     elder: "雙腳前後輪流抬起 10 次",   mix: "從椅子站起坐下 5 次" },
+      { kid: "原地轉一圈再單腳站 3 秒", elder: "踮腳站 5 秒",            mix: "弓箭步左右各 3 下" },
+      { kid: "學青蛙跳 5 下",        elder: "原地踏步並擺手 20 下",     mix: "原地高抬腿 10 下" },
+      { kid: "做開合跳 5 下",        elder: "左右側彎腰各 5 次",       mix: "扭腰大轉圈左右各 5 圈" }
+    ]
+  },
+  imagine: {
+    easy: [
+      { mix: "說出一個喜歡的顏色，為什麼?" },
+      { mix: "如果可以變成動物，想變什麼?" },
+      { mix: "說出最喜歡的食物，為什麼?" },
+      { mix: "說出今天的好心情" },
+      { mix: "說一個夢想的地方" },
+      { mix: "如果你會飛，想飛去哪裡?" }
+    ],
+    medium: [
+      { mix: "形容今天的心情像什麼?" },
+      { mix: "描述你想養的寵物，為什麼?" },
+      { mix: "說一句鼓勵自己的話" },
+      { mix: "說一個你最佩服的人，為什麼?" },
+      { mix: "形容一頓最完美的晚餐" },
+      { mix: "如果有一天假期，你想做什麼?" }
+    ],
+    hard: [
+      { mix: "編一個三句話的故事" },
+      { mix: "如果可以許三個願望，你想許什麼?" },
+      { mix: "說出 3 件這輩子最想做的事" },
+      { mix: "形容一個理想的地方，含 3 個細節" },
+      { mix: "編一個關於朋友的小故事" },
+      { mix: "如果可以選一個超能力，要什麼?為什麼?" }
+    ]
+  }
+};
+
+/* 特殊格(不需難度分級, 隨機點綴) */
+const SPECIALS = [
+  { text: "前進 2 格 🎉", icon: "⏩" },
+  { text: "後退 1 格",     icon: "⏪" },
+  { text: "再擲一次骰子",   icon: "🎲" },
+  { text: "與夥伴擊掌！",   icon: "🙌" },
+  { text: "暫停一回合休息", icon: "💤" },
+  { text: "唱一首歌的開頭", icon: "🎵" },
+  { text: "深呼吸三次，放鬆一下", icon: "🌬️" },
+  { text: "說出夥伴的一個優點", icon: "💖" }
+];
+
+/* 主題設定 */
+const THEMES = {
+  treasure: {
+    name: "尋寶",
+    startLabel: "啟航！",
+    endLabel:   "寶藏！",
+    startIcon:  "⛵",
+    endIcon:    "💎",
+    decor: ["🌴","🏝️","🗺️","⚓","🦜","🌊"]
+  },
+  travel: {
+    name: "旅行",
+    startLabel: "出發！",
+    endLabel:   "抵達！",
+    startIcon:  "🏠",
+    endIcon:    "📍",
+    decor: ["✈️","🚂","🚢","🗽","🎒","📷"]
+  },
+  season: {
+    name: "四季",
+    startLabel: "春之始",
+    endLabel:   "新年到",
+    startIcon:  "🌸",
+    endIcon:    "🎊",
+    decor: ["🌻","🍁","❄️","🌷","🍃","☔"]
+  },
+  zoo: {
+    name: "動物園",
+    startLabel: "入園",
+    endLabel:   "閉園",
+    startIcon:  "🎫",
+    endIcon:    "🏆",
+    decor: ["🦁","🐘","🦒","🐵","🐧","🦓"]
+  },
+  space: {
+    name: "太空",
+    startLabel: "發射！",
+    endLabel:   "登陸！",
+    startIcon:  "🚀",
+    endIcon:    "🪐",
+    decor: ["⭐","🌙","☄️","🛸","👽","🌟"]
+  }
+};
+
+/* 類別顏色與標籤 */
+const CAT_META = {
+  number:  { color: "#3a86ff", name: "數字計算", icon: "🔢" },
+  tongue:  { color: "#8338ec", name: "繞口令",   icon: "👄" },
+  memory:  { color: "#fb8500", name: "回憶問題", icon: "💭" },
+  body:    { color: "#06a77d", name: "肢體動作", icon: "🤸" },
+  imagine: { color: "#f72585", name: "想像表達", icon: "✨" },
+  custom:  { color: "#5e60ce", name: "自訂題目", icon: "✏️" },
+  special: { color: "#ffbe0b", name: "特殊格",   icon: "⭐" },
+  start:   { color: "#06a77d", name: "起點",     icon: "🚩" },
+  end:     { color: "#d62828", name: "終點",     icon: "🏁" }
+};
+
+/* ====================================================================
+ *   SEEDED RNG (mulberry32)
+ * ==================================================================== */
+function makeRng(seed) {
+  let s = seed >>> 0;
+  return function() {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function pickFrom(arr, rng) { return arr[Math.floor(rng() * arr.length)]; }
+function shuffle(arr, rng) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ====================================================================
+ *   BOARD GENERATION
+ * ==================================================================== */
+function generateBoard(settings) {
+  const { cellCount, difficulty, population, categories, seed, themeKey, customTasks } = settings;
+  const rng = makeRng(seed);
+  const cells = [];
+
+  // 0 = start, last = end
+  cells.push({ kind: "start", cat: "start", text: THEMES[themeKey].startLabel, icon: THEMES[themeKey].startIcon });
+
+  const interior = cellCount - 2; // 中間格子數
+  const specialRatio = 0.12; // ~12% 為特殊格
+  const specialCount = Math.max(1, Math.round(interior * specialRatio));
+  const taskCount = interior - specialCount;
+
+  // 篩選有效類別 (含 custom)
+  const validCats = categories.filter(c => TASKS[c] || c === "custom");
+  if (validCats.length === 0) validCats.push("memory");
+
+  // 為每個類別建立『打亂後依序取用』的任務池, 避免重複
+  const taskPools = {};
+  const usableCats = [];
+  validCats.forEach(cat => {
+    let items = [];
+    if (cat === "custom") {
+      const ct = Array.isArray(customTasks) ? customTasks : [];
+      if (ct.length === 0) return;  // 自訂類別啟用但題目為空 -> 略過
+      items = ct.map(t => ({ text: t, icon: CAT_META.custom.icon }));
+    } else {
+      const pool = TASKS[cat][difficulty] || TASKS[cat].easy;
+      items = pool.map(t => ({
+        text: t[population] || t.mix || t.kid || t.elder || Object.values(t)[0],
+        icon: CAT_META[cat].icon
+      }));
+    }
+    if (items.length === 0) return;
+    taskPools[cat] = { items: shuffle(items, rng), idx: 0 };
+    usableCats.push(cat);
+  });
+
+  // 緊急 fallback: 若全部類別都不可用 (僅勾自訂但未填內容)
+  if (usableCats.length === 0) {
+    const fallbackItems = TASKS.memory.easy.map(t => ({
+      text: t[population] || t.mix || t.kid || t.elder || Object.values(t)[0],
+      icon: CAT_META.memory.icon
+    }));
+    taskPools.memory = { items: shuffle(fallbackItems, rng), idx: 0 };
+    usableCats.push("memory");
+  }
+
+  const specialPool = {
+    items: shuffle(SPECIALS.map(s => ({ text: s.text, icon: s.icon })), rng),
+    idx: 0
+  };
+
+  // 為每個任務格分配類別 (盡量平均)
+  const catSlots = [];
+  for (let n = 0; n < taskCount; n++) catSlots.push(usableCats[n % usableCats.length]);
+  for (let n = 0; n < specialCount; n++) catSlots.push("__special__");
+  const slotsOrder = shuffle(catSlots, rng);
+
+  // 為每個位置產出任務內容: 依序從打亂池取出, 用完才環繞
+  for (let n = 0; n < interior; n++) {
+    const slot = slotsOrder[n];
+    if (slot === "__special__") {
+      const item = specialPool.items[specialPool.idx % specialPool.items.length];
+      specialPool.idx++;
+      cells.push({ kind: "special", cat: "special", text: item.text, icon: item.icon });
+    } else {
+      const pool = taskPools[slot];
+      const item = pool.items[pool.idx % pool.items.length];
+      pool.idx++;
+      cells.push({ kind: "task", cat: slot, text: item.text, icon: item.icon });
+    }
+  }
+
+  cells.push({ kind: "end", cat: "end", text: THEMES[themeKey].endLabel, icon: THEMES[themeKey].endIcon });
+
+  return cells;
+}
+
+/* ====================================================================
+ *   LAYOUT: 推算 rows × cols (蛇形)
+ * ==================================================================== */
+function getGridLayout(count) {
+  const map = { 20: [4, 5], 25: [5, 5], 30: [5, 6], 35: [5, 7], 40: [5, 8] };
+  return map[count] || [5, 6];
+}
+
+/* 取得棋盤 cell 在蛇形版面的格子座標 */
+function getCellPos(index, rows, cols) {
+  const row = Math.floor(index / cols);
+  const inRowIdx = index % cols;
+  const col = (row % 2 === 0) ? inRowIdx : (cols - 1 - inRowIdx);
+  return { row, col };
+}
+
+/* ====================================================================
+ *   CANVAS RENDERER
+ * ==================================================================== */
+const PAGE_W = 1754;   // 150dpi A4 橫式寬
+const PAGE_H = 1240;   // 150dpi A4 橫式高
+
+function renderBoard(canvas, cells, settings, copyIndex) {
+  const ctx = canvas.getContext("2d");
+  canvas.width = PAGE_W;
+  canvas.height = PAGE_H;
+
+  const theme = THEMES[settings.themeKey];
+  const [rows, cols] = getGridLayout(settings.cellCount);
+  const fontScale = FONT_SCALES[settings.fontSize] || 1.18;
+
+  // ====== 背景 ======
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, PAGE_W, PAGE_H);
+
+  // 紙質背景斑點 (微妙紋理)
+  drawPaperTexture(ctx, settings.seed + copyIndex);
+
+  // ====== 標題列 ======
+  drawHeader(ctx, theme, settings, copyIndex);
+
+  // ====== 棋盤區 ======
+  const boardTop = 200;
+  const boardBottom = PAGE_H - 90;
+  const boardLeft = 50;
+  const boardRight = PAGE_W - 50;
+  const boardW = boardRight - boardLeft;
+  const boardH = boardBottom - boardTop;
+
+  const cellW = boardW / cols;
+  const cellH = boardH / rows;
+
+  // 繪製主題裝飾 (在格子之間的空白角落, 在格子底下)
+  drawThemeDecor(ctx, theme, settings.seed + copyIndex, boardLeft, boardTop, boardRight, boardBottom, rows, cols, cellW, cellH);
+
+  // 繪製格子
+  cells.forEach((cell, idx) => {
+    const { row, col } = getCellPos(idx, rows, cols);
+    const x = boardLeft + col * cellW;
+    const y = boardTop + row * cellH;
+    drawCell(ctx, cell, idx + 1, x, y, cellW, cellH, fontScale);
+  });
+
+  // 繪製連接箭頭 (放在格子之上, 圓形徽章樣式, 高度顯眼)
+  drawPathArrows(ctx, cells.length, rows, cols, boardLeft, boardTop, cellW, cellH);
+
+  // ====== 頁尾 ======
+  drawFooter(ctx, settings, copyIndex);
+}
+
+const FONT_SCALES = { std: 1.0, large: 1.2, xlarge: 1.4, huge: 1.6 };
+
+function drawPaperTexture(ctx, seed) {
+  // 不規則米色微紋理
+  const rng = makeRng(seed * 31 + 7);
+  ctx.save();
+  for (let i = 0; i < 300; i++) {
+    const x = rng() * PAGE_W;
+    const y = rng() * PAGE_H;
+    const r = rng() * 1.4 + 0.3;
+    ctx.fillStyle = `rgba(180,160,120,${0.04 + rng() * 0.05})`;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawHeader(ctx, theme, settings, copyIndex) {
+  ctx.save();
+
+  // 標題裝飾條
+  const grad = ctx.createLinearGradient(0, 0, PAGE_W, 0);
+  grad.addColorStop(0, "#ef6c4d");
+  grad.addColorStop(1, "#0d7377");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, PAGE_W, 14);
+
+  // 主標
+  ctx.fillStyle = "#2d2a26";
+  ctx.font = "bold 60px 'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const title = `${theme.startIcon}  ${theme.name}任務棋盤  ${theme.endIcon}`;
+  ctx.fillText(title, PAGE_W / 2, 75);
+
+  // 副標
+  ctx.fillStyle = "#6b6660";
+  ctx.font = "28px 'Noto Sans TC','PingFang TC',sans-serif";
+  ctx.fillText("擲骰前進，完成任務，第一個抵達終點獲勝！", PAGE_W / 2, 125);
+
+  // 規則提示列
+  const popLabel = settings.population === "kid" ? "兒童版" : settings.population === "elder" ? "長者版" : "通用版";
+  const diffLabel = settings.difficulty === "easy" ? "簡單" : settings.difficulty === "medium" ? "中等" : "困難";
+  const meta = `${popLabel}  ·  ${diffLabel}  ·  共 ${settings.cellCount} 格  ·  種子 ${settings.seed}`;
+  ctx.fillStyle = "#0d7377";
+  ctx.font = "22px 'Noto Sans TC','PingFang TC',sans-serif";
+  ctx.fillText(meta, PAGE_W / 2, 165);
+
+  // 份數標記
+  if (settings.copies > 1) {
+    ctx.fillStyle = "#ef6c4d";
+    ctx.font = "bold 22px 'Noto Sans TC',sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(`第 ${copyIndex + 1} / ${settings.copies} 份`, PAGE_W - 50, 165);
+  }
+
+  ctx.restore();
+}
+
+function drawFooter(ctx, settings, copyIndex) {
+  ctx.save();
+  const y = PAGE_H - 45;
+
+  ctx.fillStyle = "#6b6660";
+  ctx.font = "20px 'Noto Sans TC','PingFang TC',sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("設計者：愛迪樂 鍾孟修 職能治療師", 50, y);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#a8a39a";
+  ctx.font = "16px 'Noto Sans TC',sans-serif";
+  ctx.fillText("Quest Board · 認知訓練教案", PAGE_W - 50, y);
+
+  // 細邊條
+  ctx.strokeStyle = "#d9d2c2";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(50, y - 22);
+  ctx.lineTo(PAGE_W - 50, y - 22);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawCell(ctx, cell, number, x, y, w, h, fontScale) {
+  ctx.save();
+  const padding = 8;
+  const cx = x + padding;
+  const cy = y + padding;
+  const cw = w - padding * 2;
+  const ch = h - padding * 2;
+
+  const meta = CAT_META[cell.cat];
+  const color = meta.color;
+
+  // 卡片背景: 圓角矩形 + 漸層
+  roundRect(ctx, cx, cy, cw, ch, 14);
+  const grad = ctx.createLinearGradient(cx, cy, cx, cy + ch);
+  grad.addColorStop(0, lighten(color, 0.85));
+  grad.addColorStop(1, lighten(color, 0.72));
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // 邊框
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // 上方色帶 (顯示類別)
+  ctx.save();
+  ctx.beginPath();
+  roundRectPath(ctx, cx, cy, cw, 28, 14, 14, 0, 0);
+  ctx.clip();
+  ctx.fillStyle = color;
+  ctx.fillRect(cx, cy, cw, 28);
+  ctx.restore();
+
+  // 編號 (左上)
+  ctx.fillStyle = "white";
+  ctx.font = "bold 18px 'Noto Sans TC',sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`#${number}`, cx + 10, cy + 14);
+
+  // 類別名 (右上)
+  if (cell.kind === "task" || cell.kind === "special") {
+    ctx.textAlign = "right";
+    ctx.font = "bold 16px 'Noto Sans TC',sans-serif";
+    ctx.fillText(meta.name, cx + cw - 10, cy + 14);
+  } else {
+    ctx.textAlign = "right";
+    ctx.font = "bold 16px 'Noto Sans TC',sans-serif";
+    ctx.fillText(cell.kind === "start" ? "起點" : "終點", cx + cw - 10, cy + 14);
+  }
+
+  // Icon
+  ctx.fillStyle = color;
+  const iconSize = cell.kind === "start" || cell.kind === "end" ? 58 : 38;
+  ctx.font = `${iconSize}px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const iconY = cy + 28 + (cell.kind === "start" || cell.kind === "end" ? ch * 0.32 : 32);
+  ctx.fillText(cell.icon, cx + cw / 2, iconY);
+
+  // 任務文字 (套用 fontScale)
+  const textY = (cell.kind === "start" || cell.kind === "end") ? cy + ch - 44 : iconY + 28;
+
+  ctx.fillStyle = "#2d2a26";
+  const baseSize = (cell.kind === "start" || cell.kind === "end") ? 28 : 20;
+  const fontSize = Math.round(baseSize * fontScale);
+  ctx.font = `bold ${fontSize}px 'Noto Sans TC','PingFang TC',sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+
+  wrapText(ctx, cell.text, cx + cw / 2, textY, cw - 16, fontSize + 5);
+
+  ctx.restore();
+}
+
+function drawPathArrows(ctx, count, rows, cols, x0, y0, cw, ch) {
+  ctx.save();
+
+  for (let i = 0; i < count - 1; i++) {
+    const a = getCellPos(i, rows, cols);
+    const b = getCellPos(i + 1, rows, cols);
+
+    // 同列
+    if (a.row === b.row) {
+      const y = y0 + a.row * ch + ch / 2;
+      const x1 = x0 + a.col * cw + cw / 2;
+      const x2 = x0 + b.col * cw + cw / 2;
+      drawArrow(ctx, x1, y, x2, y);
+    }
+    // 換列
+    else {
+      const x = x0 + a.col * cw + cw / 2;
+      const y1 = y0 + a.row * ch + ch / 2;
+      const y2 = y0 + b.row * ch + ch / 2;
+      drawArrow(ctx, x, y1, x, y2);
+    }
+  }
+  ctx.restore();
+}
+
+function drawArrow(ctx, x1, y1, x2, y2) {
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+
+  ctx.save();
+  ctx.translate(mx, my);
+  ctx.rotate(angle);
+
+  const R = 19;  // 徽章半徑 (微縮以減少對相鄰格的視覺干擾)
+
+  // 陰影 (使徽章更突出)
+  ctx.shadowColor = 'rgba(45, 42, 38, 0.25)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 2;
+
+  // 圓形背景 (白底 + 主色描邊)
+  ctx.beginPath();
+  ctx.arc(0, 0, R, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+
+  // 清除陰影 (避免邊框與箭頭也有陰影)
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+
+  // 描邊
+  ctx.strokeStyle = '#ef6c4d';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // 內側粗箭頭
+  ctx.beginPath();
+  ctx.moveTo(-9, -8);
+  ctx.lineTo(10, 0);
+  ctx.lineTo(-9, 8);
+  ctx.lineTo(-4, 0);
+  ctx.closePath();
+  ctx.fillStyle = '#ef6c4d';
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawThemeDecor(ctx, theme, seed, x0, y0, x1, y1, rows, cols, cw, ch) {
+  // 在棋盤外圈四角加入主題裝飾 emoji (淡色, 不干擾文字)
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.font = "70px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  const rng = makeRng(seed * 17 + 3);
+  const decor = theme.decor;
+
+  // 四角各一顆 (大)
+  const positions = [
+    [x0 + 30, y0 - 80],
+    [x1 - 30, y0 - 80],
+    [x0 + 30, y1 + 60],
+    [x1 - 30, y1 + 60]
+  ];
+  positions.forEach(p => {
+    ctx.fillText(decor[Math.floor(rng() * decor.length)], p[0], p[1]);
+  });
+  ctx.restore();
+}
+
+/* ====== utilities ====== */
+function lighten(hex, ratio) {
+  // ratio 0..1, 越大越淡
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substr(0, 2), 16);
+  const g = parseInt(h.substr(2, 2), 16);
+  const b = parseInt(h.substr(4, 2), 16);
+  const nr = Math.round(r + (255 - r) * ratio);
+  const ng = Math.round(g + (255 - g) * ratio);
+  const nb = Math.round(b + (255 - b) * ratio);
+  return `rgb(${nr},${ng},${nb})`;
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  roundRectPath(ctx, x, y, w, h, r, r, r, r);
+}
+function roundRectPath(ctx, x, y, w, h, tl, tr, br, bl) {
+  ctx.moveTo(x + tl, y);
+  ctx.lineTo(x + w - tr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + tr);
+  ctx.lineTo(x + w, y + h - br);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+  ctx.lineTo(x + bl, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - bl);
+  ctx.lineTo(x, y + tl);
+  ctx.quadraticCurveTo(x, y, x + tl, y);
+}
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  const chars = Array.from(text);
+  const lines = [];
+  let line = "";
+  for (const ch of chars) {
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxWidth && line.length > 0) {
+      lines.push(line);
+      line = ch;
+    } else {
+      line = test;
+    }
+  }
+  if (line.length > 0) lines.push(line);
+
+  lines.forEach((ln, i) => ctx.fillText(ln, x, y + i * lineHeight));
+}
+
+/* ====================================================================
+ *   GUIDE PAGE (治療師指引)
+ * ==================================================================== */
+function renderGuide(canvas, cells, settings) {
+  const ctx = canvas.getContext("2d");
+  canvas.width = PAGE_W;
+  canvas.height = PAGE_H;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, PAGE_W, PAGE_H);
+
+  // header
+  ctx.fillStyle = "#0d7377";
+  ctx.fillRect(0, 0, PAGE_W, 12);
+
+  ctx.fillStyle = "#2d2a26";
+  ctx.font = "bold 46px 'Noto Sans TC','PingFang TC',sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("📋  治療師指引頁", PAGE_W / 2, 70);
+
+  ctx.fillStyle = "#6b6660";
+  ctx.font = "22px 'Noto Sans TC','PingFang TC',sans-serif";
+  ctx.fillText("教案資訊、任務分布與帶領建議", PAGE_W / 2, 110);
+
+  // ===== 雙欄版面 =====
+  const colMargin = 50;
+  const colGap = 50;
+  const colW = (PAGE_W - colMargin * 2 - colGap) / 2;
+  const leftX = colMargin;
+  const rightX = colMargin + colW + colGap;
+  const colStartY = 175;
+  let yL = colStartY, yR = colStartY;
+
+  const popLabel = settings.population === "kid" ? "兒童版" : settings.population === "elder" ? "長者版" : "通用版";
+  const diffLabel = settings.difficulty === "easy" ? "簡單" : settings.difficulty === "medium" ? "中等" : "困難";
+  const themeName = THEMES[settings.themeKey].name;
+
+  // ===== 左欄 (1): 教案資訊 =====
+  drawSection(ctx, "教案資訊", yL, leftX);
+  yL += 42;
+  ctx.fillStyle = "#2d2a26";
+  ctx.font = "20px 'Noto Sans TC','PingFang TC',sans-serif";
+  ctx.textAlign = "left";
+  const info = [
+    `主題：${themeName}`,
+    `適用族群：${popLabel}`,
+    `難度層級：${diffLabel}`,
+    `格數：${settings.cellCount} 格`,
+    `亂數種子：${settings.seed} (相同種子可重現題目)`
+  ];
+  info.forEach(l => { ctx.fillText(`・${l}`, leftX + 30, yL); yL += 32; });
+  yL += 14;
+
+  // ===== 左欄 (2): 任務分布統計 =====
+  drawSection(ctx, "任務分布統計", yL, leftX);
+  yL += 42;
+  const counts = {};
+  cells.forEach(c => { counts[c.cat] = (counts[c.cat] || 0) + 1; });
+
+  ctx.font = "20px 'Noto Sans TC','PingFang TC',sans-serif";
+  const order = ["start","number","tongue","memory","body","imagine","custom","special","end"];
+  order.forEach(k => {
+    if (!counts[k]) return;
+    const m = CAT_META[k];
+    ctx.fillStyle = m.color;
+    roundRect(ctx, leftX + 30, yL - 16, 26, 22, 5);
+    ctx.fill();
+    ctx.fillStyle = "#2d2a26";
+    ctx.font = "20px 'Noto Sans TC','PingFang TC',sans-serif";
+    ctx.fillText(`${m.icon}  ${m.name}：${counts[k]} 格`, leftX + 68, yL);
+    yL += 32;
+  });
+
+  // ===== 右欄 (1): 建議遊戲規則 =====
+  drawSection(ctx, "建議遊戲規則", yR, rightX);
+  yR += 42;
+  const rules = [
+    "1. 準備一顆骰子 (或抽 1–6 號卡片)；每位玩家準備不同顏色棋子。",
+    "2. 玩家輪流擲骰並前進相對應的步數，停在格子上後完成該格任務。",
+    "3. 完成任務獲得 1 分；無法完成可由治療師協助引導。",
+    "4. 遇「特殊格」依指示行動 (前進/後退/再擲/休息)。",
+    "5. 最先抵達終點者勝出；亦可記錄完成總分作為團體挑戰目標。",
+    "6. 治療師可依個案表現調整任務難度或自由替換題目。"
+  ];
+  ctx.font = "18px 'Noto Sans TC','PingFang TC',sans-serif";
+  ctx.fillStyle = "#2d2a26";
+  rules.forEach(r => {
+    yR = wrapTextReturn(ctx, r, rightX + 30, yR, colW - 30, 26);
+    yR += 12;
+  });
+
+  yR += 8;
+  // ===== 右欄 (2): 臨床應用提示 =====
+  drawSection(ctx, "臨床應用提示", yR, rightX);
+  yR += 42;
+  const tips = [
+    "・數字計算：注意力、心算、工作記憶；可請玩家以「指、唸、寫」三步驟強化。",
+    "・繞口令：口腔動作協調、構音清晰；建議錄音回放讓玩家自我覺察。",
+    "・回憶問題：自傳記憶與語言提取；長者可延伸成 5–10 分鐘故事分享。",
+    "・肢體動作：本體覺、平衡與肌耐力；老人團體建議坐姿動作為主。",
+    "・想像表達：執行功能與彈性思考；鼓勵玩家給出超過一個答案。"
+  ];
+  if (counts.custom) {
+    tips.push("・自訂題目：依治療師專業判斷設計的個別化任務。");
+  }
+  ctx.font = "17px 'Noto Sans TC','PingFang TC',sans-serif";
+  tips.forEach(t => {
+    yR = wrapTextReturn(ctx, t, rightX + 30, yR, colW - 30, 25);
+    yR += 8;
+  });
+
+  // footer
+  ctx.fillStyle = "#6b6660";
+  ctx.font = "20px 'Noto Sans TC','PingFang TC',sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("設計者：愛迪樂 鍾孟修 職能治療師", 50, PAGE_H - 45);
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#a8a39a";
+  ctx.font = "16px 'Noto Sans TC',sans-serif";
+  ctx.fillText("Quest Board · 治療師指引", PAGE_W - 50, PAGE_H - 45);
+  ctx.strokeStyle = "#d9d2c2";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(50, PAGE_H - 67);
+  ctx.lineTo(PAGE_W - 50, PAGE_H - 67);
+  ctx.stroke();
+}
+
+function drawSection(ctx, title, y, xStart) {
+  if (xStart === undefined) xStart = 50;
+  ctx.save();
+  ctx.fillStyle = "#ef6c4d";
+  ctx.fillRect(xStart, y - 24, 7, 30);
+  ctx.fillStyle = "#2d2a26";
+  ctx.font = "bold 26px 'Noto Sans TC','PingFang TC',sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(title, xStart + 18, y);
+  ctx.restore();
+}
+
+function wrapTextReturn(ctx, text, x, y, maxWidth, lineHeight) {
+  const chars = Array.from(text);
+  let line = "";
+  let yPos = y;
+  for (const ch of chars) {
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxWidth && line.length > 0) {
+      ctx.fillText(line, x, yPos);
+      line = ch;
+      yPos += lineHeight;
+    } else {
+      line = test;
+    }
+  }
+  if (line.length > 0) {
+    ctx.fillText(line, x, yPos);
+    yPos += lineHeight;
+  }
+  return yPos;
+}
+
+/* ====================================================================
+ *   STATE & EVENT HANDLERS
+ * ==================================================================== */
+const STATE = {
+  themeKey: "treasure",
+  population: "mix",
+  cellCount: 30,
+  difficulty: "easy",
+  fontSize: "large",
+  categories: ["number","tongue","memory","body","imagine"],
+  customTasks: [],
+  copies: 1,
+  seed: 1024,
+  guide: false
+};
+
+function bindChipGroup(groupId, key, isMulti = false) {
+  const el = document.getElementById(groupId);
+  el.addEventListener("click", e => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    const val = chip.dataset.val;
+    if (isMulti) {
+      chip.classList.toggle("active");
+      // 至少留一個
+      const actives = el.querySelectorAll(".chip.active");
+      if (actives.length === 0) {
+        chip.classList.add("active");
+        return;
+      }
+      STATE[key] = Array.from(actives).map(c => c.dataset.val);
+    } else {
+      el.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      // 數字字串轉換
+      STATE[key] = (key === "cellCount") ? parseInt(val) : val;
+    }
+    refresh();
+  });
+}
+
+bindChipGroup("theme-group", "themeKey");
+bindChipGroup("population-group", "population");
+bindChipGroup("cellcount-group", "cellCount");
+bindChipGroup("difficulty-group", "difficulty");
+bindChipGroup("fontsize-group", "fontSize");
+bindChipGroup("categories-group", "categories", true);
+
+document.getElementById("copies").addEventListener("input", e => {
+  STATE.copies = Math.max(1, Math.min(10, parseInt(e.target.value) || 1));
+  e.target.value = STATE.copies;
+  updateMeta();
+});
+
+document.getElementById("customTasks").addEventListener("input", e => {
+  STATE.customTasks = e.target.value.split("\n").map(s => s.trim()).filter(s => s.length > 0);
+  updateCustomHint();
+  refresh();
+});
+
+function updateCustomHint() {
+  const hint = document.getElementById("customHint");
+  const active = STATE.categories.includes("custom");
+  const n = STATE.customTasks.length;
+  if (!active) {
+    hint.textContent = `尚未啟用自訂題目類別（目前已輸入 ${n} 題，可隨時啟用）`;
+    hint.style.color = "var(--ink-soft)";
+  } else if (n === 0) {
+    hint.textContent = "⚠️ 已啟用自訂題目類別，但題目為空，請輸入內容";
+    hint.style.color = "#d62828";
+  } else {
+    hint.textContent = `✓ 已啟用，將從 ${n} 題自訂題目中隨機選用`;
+    hint.style.color = "#06a77d";
+  }
+}
+
+document.getElementById("seed").addEventListener("input", e => {
+  STATE.seed = Math.max(1, parseInt(e.target.value) || 1);
+  refresh();
+});
+
+document.getElementById("randomSeed").addEventListener("click", () => {
+  STATE.seed = Math.floor(Math.random() * 999999) + 1;
+  document.getElementById("seed").value = STATE.seed;
+  refresh();
+});
+
+document.getElementById("guideSwitch").addEventListener("click", e => {
+  e.currentTarget.classList.toggle("on");
+  STATE.guide = e.currentTarget.classList.contains("on");
+});
+
+document.getElementById("btnRegen").addEventListener("click", () => {
+  STATE.seed = Math.floor(Math.random() * 999999) + 1;
+  document.getElementById("seed").value = STATE.seed;
+  refresh();
+});
+
+document.getElementById("btnPDF").addEventListener("click", exportPDF);
+
+function updateMeta() {
+  const popLabel = STATE.population === "kid" ? "兒童" : STATE.population === "elder" ? "長者" : "通用";
+  const diffLabel = STATE.difficulty === "easy" ? "簡單" : STATE.difficulty === "medium" ? "中等" : "困難";
+  document.getElementById("m-theme").textContent = THEMES[STATE.themeKey].name;
+  document.getElementById("m-pop").textContent = popLabel;
+  document.getElementById("m-cells").textContent = STATE.cellCount;
+  document.getElementById("m-diff").textContent = diffLabel;
+  document.getElementById("m-copies").textContent = STATE.copies;
+  document.getElementById("m-seed").textContent = STATE.seed;
+}
+
+function refresh() {
+  updateMeta();
+  updateCustomHint();
+  const cells = generateBoard({
+    cellCount: STATE.cellCount,
+    difficulty: STATE.difficulty,
+    population: STATE.population,
+    categories: STATE.categories,
+    customTasks: STATE.customTasks,
+    seed: STATE.seed,
+    themeKey: STATE.themeKey
+  });
+  const canvas = document.getElementById("boardCanvas");
+  renderBoard(canvas, cells, { ...STATE }, 0);
+}
+
+/* ====================================================================
+ *   PDF EXPORT
+ * ==================================================================== */
+async function exportPDF() {
+  const loading = document.getElementById("loading");
+  const loadingText = document.getElementById("loadingText");
+  loading.classList.add("show");
+  loadingText.textContent = "正在準備 PDF…";
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pdfW = 297;
+    const pdfH = 210;
+
+    const offCanvas = document.createElement("canvas");
+
+    let pageCount = 0;
+    for (let c = 0; c < STATE.copies; c++) {
+      loadingText.textContent = `渲染第 ${c + 1} / ${STATE.copies} 份…`;
+      await sleep(20);
+
+      // 用各份不同的種子偏移以產生不同題目?  保持同一種子(同一份教案重複列印)
+      const cells = generateBoard({
+        cellCount: STATE.cellCount,
+        difficulty: STATE.difficulty,
+        population: STATE.population,
+        categories: STATE.categories,
+        customTasks: STATE.customTasks,
+        seed: STATE.seed,   // 同種子 = 同題目, 用於課堂多人共用
+        themeKey: STATE.themeKey
+      });
+
+      renderBoard(offCanvas, cells, { ...STATE }, c);
+      const img = offCanvas.toDataURL("image/jpeg", 0.92);
+      if (pageCount > 0) pdf.addPage();
+      pdf.addImage(img, "JPEG", 0, 0, pdfW, pdfH);
+      pageCount++;
+
+      if (STATE.guide) {
+        renderGuide(offCanvas, cells, { ...STATE });
+        const gimg = offCanvas.toDataURL("image/jpeg", 0.92);
+        pdf.addPage();
+        pdf.addImage(gimg, "JPEG", 0, 0, pdfW, pdfH);
+        pageCount++;
+      }
+    }
+
+    loadingText.textContent = "下載中…";
+    await sleep(50);
+
+    const themeName = THEMES[STATE.themeKey].name;
+    const popLabel = STATE.population === "kid" ? "兒童" : STATE.population === "elder" ? "長者" : "通用";
+    pdf.save(`擲骰任務棋盤_${themeName}_${popLabel}_${STATE.cellCount}格_${STATE.seed}.pdf`);
+  } catch (err) {
+    console.error(err);
+    alert("匯出 PDF 失敗：" + err.message);
+  } finally {
+    loading.classList.remove("show");
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* ====================================================================
+ *   INITIAL RENDER
+ * ==================================================================== */
+refresh();
+</script>
+
+</body>
+</html>
